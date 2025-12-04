@@ -1,15 +1,16 @@
 import { Request, Response } from 'express';
-import { WalletManager } from './WalletManager';
-
-const walletManager = new WalletManager();
+import { getServices } from '../services';
 
 export class WalletController {
     static connect(req: Request, res: Response) {
         try {
+            const { walletManager } = getServices();
             const { chainId, address, providerType } = req.body;
             if (!chainId || !address || !providerType) {
                 return res.status(400).json({ error: 'Missing required fields' });
             }
+
+            if (!walletManager) throw new Error('Wallet Manager not initialized');
 
             const session = walletManager.connectWallet(chainId, address, providerType);
             res.status(200).json({ status: 'connected', session });
@@ -19,11 +20,17 @@ export class WalletController {
     }
 
     static list(req: Request, res: Response) {
+        const { walletManager } = getServices();
+        if (!walletManager) return res.status(500).json({ error: 'Wallet Manager not initialized' });
+
         const wallets = walletManager.getActiveWallets();
         res.status(200).json({ wallets });
     }
 
     static disconnect(req: Request, res: Response) {
+        const { walletManager } = getServices();
+        if (!walletManager) return res.status(500).json({ error: 'Wallet Manager not initialized' });
+
         const { chainId, address } = req.body;
         const success = walletManager.disconnectWallet(chainId, address);
         res.status(200).json({ success });

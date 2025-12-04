@@ -1,22 +1,16 @@
 import { Request, Response } from 'express';
-import { AgentService } from './AgentService';
-import { WalletManager } from '../wallets/WalletManager';
-import { OrchestrationManager } from '../orchestration/OrchestrationManager';
-import { PrivacyLayer } from '../privacy/PrivacyLayer';
-
-// Singleton instances for now
-const walletManager = new WalletManager();
-const orchestrationManager = new OrchestrationManager();
-const privacyLayer = new PrivacyLayer();
-const agentService = new AgentService(walletManager, orchestrationManager, privacyLayer);
+import { getServices } from '../services';
 
 export class AgentController {
     static async handleCommand(req: Request, res: Response) {
         try {
+            const { agentService } = getServices();
             const { command } = req.body;
             if (!command) {
                 return res.status(400).json({ error: 'Command is required' });
             }
+
+            if (!agentService) throw new Error('Agent Service not initialized');
 
             const result = await agentService.processCommand(command);
             res.status(200).json(result);
