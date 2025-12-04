@@ -65,7 +65,10 @@ ShadowMesh is a **privacy-first, multi-chain bridge and orchestration platform**
 
 ## **Demo / Screenshots**
 
-> *Include screenshots or GIFs of the landing page, wallet connection modal, cross-chain portfolio, and agent orchestration interface.*
+> <img width="1365" height="584" alt="Screenshot 2025-12-04 194943" src="https://github.com/user-attachments/assets/58b20a04-a1ed-4c81-8270-7e6a55f5c26d" />
+<img width="1363" height="628" alt="Screenshot 2025-12-04 214437" src="https://github.com/user-attachments/assets/04857052-e941-4072-94d6-4a8140e0f8de" />
+<img width="1351" height="620" alt="Screenshot 2025-12-04 214710" src="https://github.com/user-attachments/assets/18053df6-5a96-46ca-bf46-79f0a388e674" />
+
 
 ---
 
@@ -175,4 +178,5 @@ Each of these is supported by ShadowMesh’s **multi-wallet management, AI agent
 ## Integration
 The frontend is configured to communicate with the backend at `http://localhost:3002`.
 Ensure the backend is running before using the AI Agent features in the frontend.
+
 
