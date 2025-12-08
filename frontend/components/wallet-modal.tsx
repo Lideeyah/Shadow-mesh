@@ -4,7 +4,7 @@ import type React from "react"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useShadowMeshStore, type WalletType } from "@/lib/store"
-import { MetaMaskIcon, PhantomIcon, NamiIcon, ElectrumIcon, ZcashIcon } from "./wallet-icons"
+import { MetaMaskIcon, PhantomIcon, NamiIcon, ElectrumIcon, ZcashIcon, SuiIcon } from "./wallet-icons"
 import { Loader2 } from "lucide-react"
 
 const WALLETS: { type: WalletType; name: string; chain: string; Icon: React.ComponentType<{ className?: string }> }[] =
@@ -14,6 +14,7 @@ const WALLETS: { type: WalletType; name: string; chain: string; Icon: React.Comp
     { type: "nami", name: "Nami", chain: "Cardano", Icon: NamiIcon },
     { type: "electrum", name: "Electrum", chain: "Bitcoin", Icon: ElectrumIcon },
     { type: "zcash", name: "Zcash Shielded", chain: "Zcash", Icon: ZcashIcon },
+    { type: "sui", name: "Sui Wallet", chain: "Sui", Icon: SuiIcon },
   ]
 
 export function WalletModal() {
@@ -40,12 +41,11 @@ export function WalletModal() {
                 onClick={() => !isConnected && !isConnecting && connectWallet(type)}
                 disabled={isConnected || isConnecting}
                 className={`group flex items-center gap-4 rounded-xl border p-4 transition-all duration-200
-                  ${
-                    isConnected
-                      ? "border-primary/50 bg-primary/10 cursor-not-allowed"
-                      : isConnecting
-                        ? "border-primary/50 bg-primary/5"
-                        : "border-border hover:border-primary/50 hover:bg-secondary/50 cursor-pointer"
+                  ${isConnected
+                    ? "border-primary/50 bg-primary/10 cursor-not-allowed"
+                    : isConnecting
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-border hover:border-primary/50 hover:bg-secondary/50 cursor-pointer"
                   }`}
               >
                 <div className="relative">

@@ -403,3 +403,20 @@ export function ShieldIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function SuiIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      data-chain-id="sui"
+      data-chain-symbol="SUI"
+    >
+      <circle cx="16" cy="16" r="15" fill="#6FB1FC" fillOpacity="0.15" stroke="#6FB1FC" strokeWidth="1" />
+      <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24C20.4183 24 24 20.4183 24 16C24 11.5817 20.4183 8 16 8ZM14 18.5L11.5 16L12.91 14.59L14 15.67L18.09 11.5L19.5 12.91L14 18.5Z" fill="#389BFF" />
+      <path d="M22 6L23 9L26 10L23 11L22 14L21 11L18 10L21 9L22 6Z" fill="#6FB1FC" />
+    </svg>
+  )
+}

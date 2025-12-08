@@ -1,8 +1,9 @@
 import { create } from "zustand"
+import { api } from "./api"
 
 // Wallet types
-export type WalletType = "metamask" | "phantom" | "nami" | "electrum" | "zcash"
-export type ChainType = "ethereum" | "solana" | "cardano" | "bitcoin" | "zcash"
+export type WalletType = "metamask" | "phantom" | "nami" | "electrum" | "zcash" | "sui"
+export type ChainType = "ethereum" | "solana" | "cardano" | "bitcoin" | "zcash" | "sui"
 
 export interface Wallet {
   id: string
@@ -96,6 +97,8 @@ interface ShadowMeshState {
 
   setWalletModalOpen: (open: boolean) => void
   setCurrentView: (view: "landing" | "dashboard" | "activity") => void
+
+  initializeAgentConnection: () => void
 }
 
 // Mock wallet data
@@ -144,6 +147,15 @@ const WALLET_CONFIGS: Record<WalletType, Omit<Wallet, "id" | "connected">> = {
     balance: 15.3,
     symbol: "ZEC",
     icon: "🛡️",
+  },
+  sui: {
+    type: "sui",
+    name: "Sui Wallet",
+    address: "0x34f6...9a2b", // Mock Sui address
+    chain: "sui",
+    balance: 4500,
+    symbol: "SUI",
+    icon: "💧",
   },
 }
 
@@ -308,32 +320,39 @@ export const useShadowMeshStore = create<ShadowMeshState>((set, get) => ({
   connectWallet: async (type) => {
     set({ connectingWallet: type })
 
-    // Simulate connection delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
     const config = WALLET_CONFIGS[type]
-    const newWallet: Wallet = {
-      ...config,
-      id: `${type}-${Date.now()}`,
-      connected: true,
-    }
 
-    set((state) => ({
-      wallets: [...state.wallets, newWallet],
-      connectingWallet: null,
-      currentView: "dashboard",
-      isWalletModalOpen: false,
-      messages: [
-        ...state.messages,
-        {
-          id: `msg-${Date.now()}`,
-          role: "system",
-          content: `✅ ${config.name} wallet connected successfully!\n\nAddress: ${config.address.slice(0, 10)}...${config.address.slice(-6)}\nBalance: ${config.balance} ${config.symbol}\nChain: ${config.chain.charAt(0).toUpperCase() + config.chain.slice(1)}`,
-          timestamp: new Date(),
-          status: "complete",
-        },
-      ],
-    }))
+    try {
+      // Register with Backend
+      await api.wallet.connect(config.chain, config.address, type);
+
+      const newWallet: Wallet = {
+        ...config,
+        id: `${type}-${Date.now()}`,
+        connected: true,
+      }
+
+      set((state) => ({
+        wallets: [...state.wallets, newWallet],
+        connectingWallet: null,
+        currentView: "dashboard",
+        isWalletModalOpen: false,
+        messages: [
+          ...state.messages,
+          {
+            id: `msg-${Date.now()}`,
+            role: "system",
+            content: `✅ ${config.name} wallet connected successfully! (Synced with Backend)\n\nAddress: ${config.address.slice(0, 10)}...${config.address.slice(-6)}\nBalance: ${config.balance} ${config.symbol}\nChain: ${config.chain.charAt(0).toUpperCase() + config.chain.slice(1)}`,
+            timestamp: new Date(),
+            status: "complete",
+          },
+        ],
+      }))
+    } catch (e) {
+      console.error("Failed to connect wallet to backend", e);
+      set({ connectingWallet: null });
+      // Optionally show error message
+    }
   },
 
   disconnectWallet: (id) => {
@@ -474,7 +493,7 @@ export const useShadowMeshStore = create<ShadowMeshState>((set, get) => ({
   },
 
   // AI Agent actions
-  sendMessage: (content) => {
+  sendMessage: async (content) => {
     const { wallets, addTransaction } = get()
 
     // Add user message
@@ -492,15 +511,19 @@ export const useShadowMeshStore = create<ShadowMeshState>((set, get) => ({
     }))
 
     // Process and respond
-    setTimeout(() => {
-      const { response, action } = processAgentCommand(content, wallets)
+    // Process and respond via Real Backend
+    try {
+      const result = await api.agent.command(content);
+
+      let responseText = `✅ Command Executed via ${result.orchestrator || 'Agent'}\n\nStatus: ${result.status}`;
+      if (result.txHash) responseText += `\nTx Hash: ${result.txHash}`;
+      if (result.mode) responseText += `\nMode: ${result.mode}`;
 
       const agentMessage: AgentMessage = {
         id: `msg-${Date.now() + 1}`,
         role: "agent",
-        content: response,
+        content: responseText,
         timestamp: new Date(),
-        action,
         status: "complete",
       }
 
@@ -509,26 +532,104 @@ export const useShadowMeshStore = create<ShadowMeshState>((set, get) => ({
         isAgentTyping: false,
       }))
 
-      // Handle actions
-      if (action?.type === "connect") {
-        set({ isWalletModalOpen: true })
-      } else if (action?.type === "bridge" || action?.type === "transfer" || action?.type === "shield") {
+      // If we got a transaction hash, add it to transactions
+      if (result.txHash) {
         addTransaction({
-          type: action.type === "shield" ? "shield" : action.type,
-          status: "pending",
-          sourceChain: wallets.find((w) => w.symbol === action.symbol)?.chain || "ethereum",
-          targetChain: action.targetChain,
-          amount: action.amount || 0.5,
-          symbol: action.symbol || "ETH",
-          bridgeProtocol: action.protocol as BridgeProtocol,
-          privacyProtocol: action.type === "shield" ? (action.protocol as PrivacyProtocol) : undefined,
-          zkProof: action.type === "shield",
+          type: "transfer", // Defaulting for now, backend should return type
+          status: "completed",
+          sourceChain: "ethereum", // Default
+          targetChain: "solana", // Default
+          amount: 0,
+          symbol: "ETH",
+          hash: result.txHash
         })
       }
-    }, 1500)
+
+    } catch (error) {
+      const errorMessage: AgentMessage = {
+        id: `msg-${Date.now() + 1}`,
+        role: "agent",
+        content: "❌ Error connecting to Agent Backend. Is it running?",
+        timestamp: new Date(),
+        status: "error",
+      }
+      set((state) => ({
+        messages: [...state.messages, errorMessage],
+        isAgentTyping: false,
+      }))
+    }
+  },
+
+  // Socket Actions
+  initializeAgentConnection: () => {
+    // Prevent multiple connections
+    if ((get() as any).socket) return;
+
+    // Dynamically import to safely handle SSR if needed, though this is client-side store
+    const { io } = require("socket.io-client");
+    const socket = io("http://localhost:3002");
+
+    socket.on("connect", () => {
+      console.log("✅ WebSocket Connected to Agent Backend");
+    });
+
+    socket.on("agent:progress", (data: any) => {
+      set({ isAgentTyping: true });
+      // Optional: Add a transient 'status' message if desired
+    });
+
+    socket.on("agent:step", (step: any) => {
+      const { messages } = get();
+      // Add step as a system/agent message
+      const stepMessage: AgentMessage = {
+        id: `step-${Date.now()}-${Math.random()}`,
+        role: "agent",
+        content: `⚙️ [Step ${step.id}] ${step.description}`,
+        timestamp: new Date(),
+        status: "processing"
+      };
+      set({
+        messages: [...messages, stepMessage],
+        isAgentTyping: true
+      });
+
+      if (step.status === 'completed') {
+        // Maybe update the message status to complete
+        // But for now stream is fine
+      }
+    });
+
+    socket.on("agent:success", (data: any) => {
+      set((state) => ({
+        messages: [...state.messages, {
+          id: `success-${Date.now()}`,
+          role: "agent",
+          content: `✅ ${data.message}`,
+          timestamp: new Date(),
+          status: "complete"
+        }],
+        isAgentTyping: false
+      }));
+    });
+
+    socket.on("agent:error", (data: any) => {
+      set((state) => ({
+        messages: [...state.messages, {
+          id: `error-${Date.now()}`,
+          role: "system",
+          content: `❌ ${data.message}`,
+          timestamp: new Date(),
+          status: "error"
+        }],
+        isAgentTyping: false
+      }));
+    });
+
+    // Save socket instance (hacky cast for now to avoid extensive type rewrites)
+    (get() as any).socket = socket;
   },
 
   // UI actions
   setWalletModalOpen: (open) => set({ isWalletModalOpen: open }),
   setCurrentView: (view) => set({ currentView: view }),
-}))
+}));

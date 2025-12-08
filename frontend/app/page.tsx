@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { useShadowMeshStore } from "@/lib/store"
 import { Header } from "@/components/header"
 import { LandingPage } from "@/components/landing-page"
@@ -8,7 +9,12 @@ import { ActivityPage } from "@/components/activity-page"
 import { WalletModal } from "@/components/wallet-modal"
 
 export default function Home() {
-  const { currentView } = useShadowMeshStore()
+  const { currentView, initializeAgentConnection } = useShadowMeshStore()
+
+  useEffect(() => {
+    initializeAgentConnection();
+  }, [initializeAgentConnection]);
+
 
   const renderView = () => {
     switch (currentView) {

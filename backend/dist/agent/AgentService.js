@@ -32,14 +32,34 @@ class AgentService {
             steps.push(step1);
             ws.emit('agent:step', step1);
             // Check Privacy
+            // Check Privacy
             if (intent.private) {
+                const privacyStep = { id: '2', description: 'Encrypting transaction data via Fhenix FHE...', status: 'active' };
+                steps.push(privacyStep);
+                ws.emit('agent:step', privacyStep);
+                await this.privacyLayer.executeConfidentialComputation({ amount: intent.amount, asset: intent.asset });
+                privacyStep.status = 'completed';
+                ws.emit('agent:step', privacyStep);
             }
-            ;
+            // Route Message via Orchestrator
+            const routeStep = { id: '3', description: `Routing via ${intent.bridge || 'Best Bridge'}...`, status: 'active' };
+            steps.push(routeStep);
+            ws.emit('agent:step', routeStep);
+            const result = await this.orchestrationManager.routeMessage(intent.source, intent.dest, JSON.stringify(intent));
+            routeStep.status = 'completed';
+            ws.emit('agent:step', routeStep);
+            ws.emit('agent:success', { message: 'Transaction Executed Successfully' });
+            return {
+                status: 'success',
+                message: 'Command processed successfully',
+                steps: steps,
+                data: result
+            };
         }
         return {
-            status: 'success',
-            message: 'Command processed',
-            steps: [{ id: '1', description: 'Command executed', status: 'completed' }]
+            status: 'error',
+            message: 'Unknown intent',
+            steps: []
         };
     }
     parseIntent(command) {
