@@ -1,0 +1,16 @@
+{
+    "name": "shadowmesh-root",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Root proxy for ShadowMesh Backend Deployment",
+    "engines": {
+        "node": "20.x"
+    },
+    "scripts": {
+        "install-backend": "cd backend && npm install",
+        "build": "cd backend && npm install && npm run build",
+        "start": "cd backend && npm start",
+        "postinstall": "echo 'Root install complete, ready for build'"
+    },
+    "dependencies": {}
+}
