@@ -1,0 +1,17 @@
+appName: shadowmesh-backend
+services:
+  - name: backend-service
+    git:
+      workdir: backend
+    build:
+      command: npm install && npm run build
+      image: koyeb/node:20
+    routes:
+      - path: /
+        port: 3002
+    health_checks:
+      - port: 3002
+        path: /health
+        interval: 30s
+        timeout: 5s
+        retries: 3
