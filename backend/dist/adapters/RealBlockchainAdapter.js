@@ -4,11 +4,12 @@ exports.RealBlockchainAdapter = void 0;
 const ethers_1 = require("ethers");
 const web3_js_1 = require("@solana/web3.js");
 const SecureLogger_1 = require("../logger/SecureLogger");
+const config_1 = require("../config");
 class RealBlockchainAdapter {
     constructor() {
-        // Use public RPCs for demo purposes
-        this.ethProvider = new ethers_1.ethers.JsonRpcProvider('https://eth.public-rpc.com');
-        this.solConnection = new web3_js_1.Connection((0, web3_js_1.clusterApiUrl)('mainnet-beta'));
+        // Use configured RPCs
+        this.ethProvider = new ethers_1.ethers.JsonRpcProvider(config_1.Config.ETH_RPC_URL);
+        this.solConnection = new web3_js_1.Connection(config_1.Config.SOLANA_RPC_URL);
     }
     async getEthereumStats() {
         try {

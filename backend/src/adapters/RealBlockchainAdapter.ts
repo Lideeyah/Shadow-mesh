@@ -1,15 +1,16 @@
 import { ethers } from 'ethers';
 import { Connection, clusterApiUrl } from '@solana/web3.js';
 import { SecureLogger } from '../logger/SecureLogger';
+import { Config } from '../config';
 
 export class RealBlockchainAdapter {
     private ethProvider: ethers.JsonRpcProvider;
     private solConnection: Connection;
 
     constructor() {
-        // Use public RPCs for demo purposes
-        this.ethProvider = new ethers.JsonRpcProvider('https://eth.public-rpc.com');
-        this.solConnection = new Connection(clusterApiUrl('mainnet-beta'));
+        // Use configured RPCs
+        this.ethProvider = new ethers.JsonRpcProvider(Config.ETH_RPC_URL);
+        this.solConnection = new Connection(Config.SOLANA_RPC_URL);
     }
 
     async getEthereumStats() {

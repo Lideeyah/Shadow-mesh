@@ -1,0 +1,8 @@
+[
+  {
+    "chainId": "ethereum",
+    "address": "0x123",
+    "providerType": "metamask",
+    "connectedAt": 1765531605485
+  }
+]

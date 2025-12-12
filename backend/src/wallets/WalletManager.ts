@@ -1,7 +1,10 @@
 import { ethers } from 'ethers';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
+import fs from 'fs';
+import path from 'path';
 import { SecureLogger } from '../logger/SecureLogger';
+import { Config } from '../config';
 
 export interface WalletSession {
     chainId: string;
@@ -14,31 +17,62 @@ export class WalletManager {
     private sessions: Map<string, WalletSession> = new Map();
     private evmWallet: ethers.Wallet | null = null;
     private solanaKeypair: Keypair | null = null;
+    private sessionsFile: string;
 
     constructor() {
+        this.sessionsFile = path.join(Config.DATA_DIR, Config.SESSIONS_FILE);
+        this.ensureDataDir();
+        this.loadSessions();
         this.initializeAgentWallet();
     }
 
+    private ensureDataDir() {
+        if (!fs.existsSync(Config.DATA_DIR)) {
+            fs.mkdirSync(Config.DATA_DIR, { recursive: true });
+        }
+    }
+
+    private loadSessions() {
+        try {
+            if (fs.existsSync(this.sessionsFile)) {
+                const data = fs.readFileSync(this.sessionsFile, 'utf-8');
+                const sessionsArray = JSON.parse(data) as WalletSession[];
+                sessionsArray.forEach(s => this.sessions.set(`${s.chainId}:${s.address}`, s));
+                SecureLogger.log(`[WalletManager] Loaded ${this.sessions.size} wallet sessions from disk.`);
+            }
+        } catch (error) {
+            SecureLogger.error('Failed to load wallet sessions', error);
+        }
+    }
+
+    private saveSessions() {
+        try {
+            const sessionsArray = Array.from(this.sessions.values());
+            fs.writeFileSync(this.sessionsFile, JSON.stringify(sessionsArray, null, 2));
+        } catch (error) {
+            SecureLogger.error('Failed to save wallet sessions', error);
+        }
+    }
+
     private initializeAgentWallet() {
-        const privateKey = process.env.PRIVATE_KEY;
-        if (!privateKey) {
+        if (!Config.EVM_PRIVATE_KEY && !Config.SOLANA_PRIVATE_KEY) {
             SecureLogger.log('No PRIVATE_KEY found. Agent will run in READ-ONLY mode.');
             return;
         }
 
         try {
-            // Try initializing EVM Wallet
-            this.evmWallet = new ethers.Wallet(privateKey);
-            SecureLogger.log('Agent EVM Wallet initialized', { address: this.evmWallet.address });
+            if (Config.EVM_PRIVATE_KEY) {
+                this.evmWallet = new ethers.Wallet(Config.EVM_PRIVATE_KEY);
+                SecureLogger.log('Agent EVM Wallet initialized', { address: this.evmWallet.address });
+            }
 
-            // Try initializing Solana Keypair (assuming same key or separate logic if needed)
-            // For simplicity, we'll assume the user might provide a BS58 string for Solana if they want
-            // But usually these are different. We will just log a warning for now if it fails.
-            try {
-                this.solanaKeypair = Keypair.fromSecretKey(bs58.decode(privateKey));
-                SecureLogger.log('Agent Solana Wallet initialized', { address: this.solanaKeypair.publicKey.toBase58() });
-            } catch (e) {
-                // Ignore if not a valid solana key
+            if (Config.SOLANA_PRIVATE_KEY) {
+                try {
+                    this.solanaKeypair = Keypair.fromSecretKey(bs58.decode(Config.SOLANA_PRIVATE_KEY));
+                    SecureLogger.log('Agent Solana Wallet initialized', { address: this.solanaKeypair.publicKey.toBase58() });
+                } catch (e) {
+                    SecureLogger.error('Invalid Solana Private Key', e);
+                }
             }
 
         } catch (error) {
@@ -55,13 +89,16 @@ export class WalletManager {
             connectedAt: Date.now()
         };
         this.sessions.set(sessionId, session);
+        this.saveSessions();
         console.log(`[WalletManager] Connected ${chainId} wallet: ${address}`);
         return session;
     }
 
     disconnectWallet(chainId: string, address: string): boolean {
         const sessionId = `${chainId}:${address}`;
-        return this.sessions.delete(sessionId);
+        const result = this.sessions.delete(sessionId);
+        if (result) this.saveSessions();
+        return result;
     }
 
     getActiveWallets(): WalletSession[] {
@@ -79,7 +116,7 @@ export class WalletManager {
         // In a real app, we would return the unsigned TX for the frontend to sign.
         // For this "Agent" demo, we will simulate success if it's a user wallet.
         SecureLogger.log(`[WalletManager] Simulating signature for user wallet`, { address });
-        return '0x_simulated_signature';
+        return '0x_simulated_signature_user_wallet_action_required';
     }
 
     getAgentAddress(chain: 'EVM' | 'SOL'): string | null {

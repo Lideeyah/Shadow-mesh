@@ -1,18 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import { AgentController } from './agent/agent.controller';
 import { WalletController } from './wallets/WalletController';
+import { Config } from './config';
 
 import { createServer } from 'http';
 import { initWebSocket } from './websocket/WebSocketServer';
 
-dotenv.config();
-
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 3002;
+const PORT = Config.PORT;
 
 // Initialize WebSocket
 initWebSocket(httpServer);

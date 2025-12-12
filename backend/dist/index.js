@@ -6,15 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const agent_controller_1 = require("./agent/agent.controller");
 const WalletController_1 = require("./wallets/WalletController");
+const config_1 = require("./config");
 const http_1 = require("http");
 const WebSocketServer_1 = require("./websocket/WebSocketServer");
-dotenv_1.default.config();
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
-const PORT = process.env.PORT || 3002;
+const PORT = config_1.Config.PORT;
 // Initialize WebSocket
 (0, WebSocketServer_1.initWebSocket)(httpServer);
 app.use((0, cors_1.default)());
